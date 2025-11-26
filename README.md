@@ -1,33 +1,33 @@
 # wip-cli
 
-CLI-утилита для работы с WIP-коммитами и git-bundle. Позволяет экспортировать текущую работу в bundle, отправлять его в Telegram, импортировать обратно и управлять WIP-коммитами.
+CLI utility for working with WIP commits and git bundles. Allows exporting current work to a bundle, sending it to Telegram, importing it back, and managing WIP commits.
 
-## Установка
+## Installation
 
 ```bash
 npm install
 npm run build
 ```
 
-Для глобальной установки:
+For global installation:
 
 ```bash
 npm link
 ```
 
-## Конфигурация
+## Configuration
 
-Создайте файл `.wiprc` в домашней директории пользователя (`~/.wiprc`).
+Create a `.wiprc` file in the user's home directory (`~/.wiprc`).
 
-### Параметры конфигурации
+### Configuration Parameters
 
-- `bundle_dir` — каталог хранения бандла (по умолчанию `.git/.wip/`)
-- `bundle_name` — имя файла бандла (по умолчанию `wip.bundle`)
-- `base_branch` — базовая ветка для работы (по умолчанию `main`)
-- `telegram_bot_token` — токен Telegram бота для отправки бандлов
-- `telegram_chat_id` — ID чата для отправки бандлов
+- `bundle_dir` — directory for storing bundles (default: `.git/.wip/`)
+- `bundle_name` — bundle file name (default: `wip.bundle`)
+- `base_branch` — base branch for work (default: `main`)
+- `telegram_bot_token` — Telegram bot token for sending bundles
+- `telegram_chat_id` — chat ID for sending bundles
 
-### Пример `.wiprc`
+### Example `.wiprc`
 
 ```
 bundle_dir=.git/.wip
@@ -37,23 +37,23 @@ telegram_bot_token=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 telegram_chat_id=-1001234567890
 ```
 
-## Команды
+## Commands
 
 ### `wip export [--msg <message>]`
 
-Создает WIP-коммит, bundle текущей ветки и отправляет его в Telegram.
+Creates a WIP commit, bundle of the current branch, and sends it to Telegram.
 
-**Логика работы:**
+**Workflow:**
 
-1. Определяет репозиторий и текущую ветку
-2. Если последний коммит — WIP, удаляет его (`git reset --soft HEAD~1`)
-3. Добавляет все изменения (`git add .`)
-4. Создает WIP-коммит (`git commit -m "WIP"`)
-5. Создает bundle только текущей ветки (`git bundle create <bundle_path> HEAD`)
-6. Отправляет bundle в Telegram (если настроено)
-7. Выводит путь к bundle
+1. Detects repository and current branch
+2. If the last commit is WIP, removes it (`git reset --soft HEAD~1`)
+3. Stages all changes (`git add .`)
+4. Creates a WIP commit (`git commit -m "WIP"`)
+5. Creates a bundle of the current branch only (`git bundle create <bundle_path> HEAD`)
+6. Sends bundle to Telegram (if configured)
+7. Outputs bundle path
 
-**Пример:**
+**Example:**
 
 ```bash
 wip export
@@ -62,25 +62,25 @@ wip export --msg "Work in progress: feature X"
 
 ### `wip import [bundle-path]`
 
-Импортирует bundle, создает или перезаписывает локальную WIP-ветку, показывает незакоммиченные изменения.
+Imports a bundle, creates or overwrites a local WIP branch, shows uncommitted changes.
 
-**Логика работы:**
+**Workflow:**
 
-1. Определяет путь к bundle:
-   - Если указан аргумент — использует его
-   - Иначе `bundle_dir/bundle_name` из конфигурации
-2. Проверяет bundle (`git bundle verify`)
-3. Обновляет базовую ветку (`git pull origin <base_branch>`)
-4. Определяет рабочую ветку:
-   - Текущая ветка, если она не базовая
-   - Иначе `wip`
-5. Если ветка существует — перезаписывает её из базовой
-6. Если нет — создает из bundle (`git fetch <bundle_path> HEAD:<branch>`)
-7. Переключается на рабочую ветку
-8. Если первый коммит — WIP, удаляет его (`git reset --soft HEAD~1`)
-9. Выводит список измененных файлов
+1. Determines bundle path:
+   - If an argument is provided — uses it
+   - Otherwise `bundle_dir/bundle_name` from configuration
+2. Verifies bundle (`git bundle verify`)
+3. Updates base branch (`git pull origin <base_branch>`)
+4. Determines working branch:
+   - Current branch if it's not the base branch
+   - Otherwise `wip`
+5. If branch exists — overwrites it from base branch
+6. If not — creates from bundle (`git fetch <bundle_path> +HEAD:<branch>`)
+7. Switches to working branch
+8. If the first commit is WIP, removes it (`git reset --soft HEAD~1`)
+9. Outputs list of changed files
 
-**Пример:**
+**Example:**
 
 ```bash
 wip import
@@ -89,63 +89,62 @@ wip import /path/to/custom.bundle
 
 ### `wip clean`
 
-Удаляет WIP-коммит после ревью, оставляя изменения незакоммиченными.
+Removes WIP commit after review, leaving changes uncommitted.
 
-**Логика работы:**
+**Workflow:**
 
-1. Проверяет текущую ветку
-2. Если последний коммит — WIP, удаляет его (`git reset --soft HEAD~1`)
-3. Выводит статус (`git status`)
+1. Checks current branch
+2. If the last commit is WIP, removes it (`git reset --soft HEAD~1`)
+3. Outputs status (`git status`)
 
-Если последний коммит не WIP — выдает ошибку.
+If the last commit is not WIP — returns an error.
 
-**Пример:**
+**Example:**
 
 ```bash
 wip clean
 ```
 
-## Поведение веток
+## Branch Behavior
 
-- Автор работает в feature-ветке
-- Экспорт создает WIP-коммит и bundle этой же ветки
-- Импорт создает или перезаписывает локальную временную ветку из bundle
-- Все изменения всегда остаются незакоммиченными для ревью
+- Author works in a feature branch
+- Export creates a WIP commit and bundle of the same branch
+- Import creates or overwrites a local temporary branch from bundle
+- All changes always remain uncommitted for review
 
-## Импорт и перекрытие
+## Import and Overwrite
 
-- Старое состояние ветки при импорте не сохраняется
-- Новый bundle всегда заменяет ветку
-- Цель: отсутствие «следов» временной работы
+- Old branch state is not preserved during import
+- New bundle always replaces the branch
+- Goal: no "traces" of temporary work
 
-## Требования
+## Requirements
 
-- Git репозиторий
+- Git repository
 - Node.js
-- Для отправки в Telegram: настроенные `telegram_bot_token` и `telegram_chat_id`
+- For Telegram sending: configured `telegram_bot_token` and `telegram_chat_id`
 
-## Разработка
+## Development
 
 ```bash
-# Сборка
+# Build
 npm run build
 
-# Разработка с watch
+# Development with watch
 npm run dev
 
-# Запуск
+# Run
 npm start
 ```
 
-## Структура проекта
+## Project Structure
 
 ```
 src/
-├── commands/      # Команды CLI (export, import, clean)
-├── config/        # Чтение конфигурации из ~/.wiprc
-├── logger/        # Логгер
-├── types/         # TypeScript типы
-├── utils/         # Утилиты (git, telegram)
-└── index.ts       # Точка входа с commander.js
+├── commands/      # CLI commands (export, import, clean)
+├── config/        # Reading configuration from ~/.wiprc
+├── logger/        # Logger
+├── types/         # TypeScript types
+├── utils/         # Utilities (git, telegram)
+└── index.ts       # Entry point with commander.js
 ```
-
