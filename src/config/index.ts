@@ -5,8 +5,6 @@ import { WipConfig } from '../types';
 import { logger } from '../logger';
 
 const DEFAULT_CONFIG: Required<WipConfig> = {
-  bundle_dir: '.git/.wip',
-  bundle_name: 'wip.bundle',
   base_branch: 'main',
   telegram_bot_token: '',
   telegram_chat_id: '',

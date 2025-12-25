@@ -1,6 +1,6 @@
 # wip-cli
 
-CLI utility for working with WIP commits and git bundles. Allows exporting current work to a bundle, sending it to Telegram, importing it back, and managing WIP commits.
+CLI utility for sharing git branches with full history via archives. Allows exporting feature branches as compressed archives with metadata, sending them via Telegram, and importing them back with complete commit history.
 
 ## Installation
 
@@ -21,17 +21,17 @@ Create a `.wiprc` file in the user's home directory (`~/.wiprc`).
 
 ### Configuration Parameters
 
-- `bundle_dir` — directory for storing bundles (default: `.git/.wip/`)
-- `bundle_name` — bundle file name (default: `wip.bundle`)
+- `archive_name` — archive file name (default: `wip-archive.tar.gz`)
 - `base_branch` — base branch for work (default: `main`)
-- `telegram_bot_token` — Telegram bot token for sending bundles
-- `telegram_chat_id` — chat ID for sending bundles
+- `telegram_bot_token` — Telegram bot token for sending archives
+- `telegram_chat_id` — chat ID for sending archives
+
+**Note:** Archives are automatically stored in `.git/wip-archives/` directory to avoid accidental commits.
 
 ### Example `.wiprc`
 
 ```
-bundle_dir=.git/.wip
-bundle_name=wip.bundle
+archive_name=wip-archive.tar.gz
 base_branch=main
 telegram_bot_token=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
 telegram_chat_id=-1001234567890
@@ -41,82 +41,96 @@ telegram_chat_id=-1001234567890
 
 ### `wip export [--msg <message>]`
 
-Creates a WIP commit, bundle of the current branch, and sends it to Telegram.
+Creates an archive containing git bundle with full commit history and metadata, sends it via Telegram.
 
-**Workflow:**
+**What it does:**
 
-1. Detects repository and current branch
-2. If the last commit is WIP, removes it (`git reset --soft HEAD~1`)
-3. Stages all changes (`git add .`)
-4. Creates a WIP commit (`git commit -m "WIP"`)
-5. Creates a bundle of the current branch only (`git bundle create <bundle_path> HEAD`)
-6. Sends bundle to Telegram (if configured)
-7. Outputs bundle path
+1. Detects current feature branch (cannot export from base branch)
+2. Creates git bundle for commits from base branch to current branch
+3. Generates metadata.json with branch info, commit range, and timestamp
+4. Compresses bundle and metadata into tar.gz archive
+5. **Stores archive in `.git/wip-archives/` directory** (safe from accidental commits)
+6. Sends archive via Telegram (if configured)
 
 **Example:**
-
 ```bash
-wip export
-wip export --msg "Work in progress: feature X"
+git checkout -b feature/new-feature
+# make some commits
+git commit -m "Add feature"
+git commit -m "Fix bug"
+
+wip export --msg "Please review new feature"
+# Archive created at: .git/wip-archives/wip-archive.tar.gz
 ```
 
-### `wip import [bundle-path]`
+### `wip import <archive-path> [--force] [--stash]`
 
-Imports a bundle, creates or overwrites a local WIP branch, shows uncommitted changes.
+Imports archive and creates/overwrites feature branch with full commit history.
 
-**Workflow:**
+**What it does:**
 
-1. Determines bundle path:
-   - If an argument is provided — uses it
-   - Otherwise `bundle_dir/bundle_name` from configuration
-2. Verifies bundle (`git bundle verify`)
-3. Updates base branch (`git pull origin <base_branch>`)
-4. Determines working branch:
-   - Current branch if it's not the base branch
-   - Otherwise `wip`
-5. If branch exists — overwrites it from base branch
-6. If not — creates from bundle (`git fetch <bundle_path> +HEAD:<branch>`)
-7. Switches to working branch
-8. If the first commit is WIP, removes it (`git reset --soft HEAD~1`)
-9. Outputs list of changed files
+1. Extracts archive to temporary directory
+2. Reads and validates metadata
+3. Verifies git bundle integrity
+4. Handles local changes (stashes or requires --force)
+5. Updates base branch
+6. Removes existing feature branch if it exists
+7. Imports bundle and switches to feature branch
+8. Cleans up temporary files
+
+**Options:**
+- `--stash`: Automatically stash local changes before import
+- `--force`: Force import even with uncommitted local changes
 
 **Example:**
-
 ```bash
+# Import from default location (.git/wip-archives/wip-archive.tar.gz)
 wip import
-wip import /path/to/custom.bundle
+
+# Import specific archive
+wip import /path/to/custom-archive.tar.gz
+
+# Handle local changes
+wip import --stash    # Stash local changes
+wip import --force    # Force overwrite local changes
 ```
 
-### `wip clean`
+## Key Differences from Traditional Git Workflow
 
-Removes WIP commit after review, leaving changes uncommitted.
+**✅ Full commit history preserved** - No WIP commits, all your commits remain intact
+**✅ Clean exports** - No auto-staging, no forced commits
+**✅ Safe imports** - Handles local changes intelligently
+**✅ Cross-platform** - Works on Windows, macOS, Linux
+**✅ Archive-based** - Single file contains everything needed
 
-**Workflow:**
+## Archive Structure
 
-1. Checks current branch
-2. If the last commit is WIP, removes it (`git reset --soft HEAD~1`)
-3. Outputs status (`git status`)
+```
+archive.tar.gz
+├── bundle.gitbundle    # Git bundle with full commit history
+└── metadata.json       # Branch info, commit range, timestamp
+```
 
-If the last commit is not WIP — returns an error.
+## Workflow Summary
 
-**Example:**
-
+**Author:**
 ```bash
-wip clean
+git checkout -b feature/branch
+# Work normally, make commits
+git commit -m "Feature implementation"
+git commit -m "Tests added"
+
+wip export --msg "Ready for review"
+# Archive created and sent via Telegram
 ```
 
-## Branch Behavior
-
-- Author works in a feature branch
-- Export creates a WIP commit and bundle of the same branch
-- Import creates or overwrites a local temporary branch from bundle
-- All changes always remain uncommitted for review
-
-## Import and Overwrite
-
-- Old branch state is not preserved during import
-- New bundle always replaces the branch
-- Goal: no "traces" of temporary work
+**Reviewer:**
+```bash
+wip import wip-archive.tar.gz
+# Full branch with history imported
+git log --oneline  # See all commits
+# Review, test, provide feedback
+```
 
 ## Requirements
 
@@ -141,10 +155,10 @@ npm start
 
 ```
 src/
-├── commands/      # CLI commands (export, import, clean)
+├── commands/      # CLI commands (export, import)
 ├── config/        # Reading configuration from ~/.wiprc
 ├── logger/        # Logger
 ├── types/         # TypeScript types
-├── utils/         # Utilities (git, telegram)
+├── utils/         # Utilities (git, telegram, archive)
 └── index.ts       # Entry point with commander.js
 ```

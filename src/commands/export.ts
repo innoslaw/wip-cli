@@ -52,7 +52,8 @@ export const exportCommand = async (msg?: string): Promise<void> => {
     logger.info('Writing metadata');
     writeMetadataFile(tempDir, metadata);
 
-    const archivePath = join(repoRoot, config.archive_name);
+    const archiveDir = join(repoRoot, '.git', 'wip-archives');
+    const archivePath = join(archiveDir, config.archive_name);
     logger.info(`Creating archive: ${archivePath}`);
     await createBundleArchive(tempDir, archivePath);
 

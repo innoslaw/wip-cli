@@ -1,7 +1,7 @@
-import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, mkdirSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
 import { tmpdir } from 'os';
-import tar from 'tar';
+import { create, extract } from 'tar';
 import { BundleMetadata } from '../types';
 
 
@@ -40,7 +40,12 @@ export const readMetadataFile = (tempDir: string): BundleMetadata => {
 };
 
 export const createBundleArchive = async (tempDir: string, archivePath: string): Promise<void> => {
-  await tar.c({
+  const dir = dirname(archivePath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+
+  await create({
     file: archivePath,
     cwd: tempDir,
     gzip: true
@@ -48,7 +53,7 @@ export const createBundleArchive = async (tempDir: string, archivePath: string):
 };
 
 export const extractBundleArchive = async (archivePath: string, tempDir: string): Promise<void> => {
-  await tar.x({
+  await extract({
     file: archivePath,
     cwd: tempDir
   });

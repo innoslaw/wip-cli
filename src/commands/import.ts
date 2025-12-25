@@ -1,4 +1,6 @@
 import { existsSync } from 'fs';
+import { join } from 'path';
+import { loadConfig, getRepoRoot } from '../config';
 import { logger } from '../logger';
 import {
   verifyBundle,
@@ -20,17 +22,22 @@ import {
 } from '../utils/archive';
 import { ImportOptions } from '../types';
 
-export const importCommand = async (archivePath: string, options: ImportOptions = {}): Promise<void> => {
-  if (!existsSync(archivePath)) {
-    logger.error(`Archive not found: ${archivePath}`);
+export const importCommand = async (archivePath: string | undefined, options: ImportOptions = {}): Promise<void> => {
+  const config = loadConfig();
+  const repoRoot = getRepoRoot();
+
+  const finalArchivePath = archivePath || join(repoRoot, '.git', 'wip-archives', config.archive_name);
+
+  if (!existsSync(finalArchivePath)) {
+    logger.error(`Archive not found: ${finalArchivePath}`);
     process.exit(1);
   }
 
   const tempDir = createTempDir();
 
   try {
-    logger.info(`Extracting archive: ${archivePath}`);
-    await extractBundleArchive(archivePath, tempDir);
+    logger.info(`Extracting archive: ${finalArchivePath}`);
+    await extractBundleArchive(finalArchivePath, tempDir);
 
     const metadata = readMetadataFile(tempDir);
     const bundlePath = getBundlePath(tempDir);

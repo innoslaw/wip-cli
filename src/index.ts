@@ -24,7 +24,7 @@ program
 program
   .command('import')
   .description('Import archive and create/overwrite feature branch')
-  .argument('<archive-path>', 'Path to archive file')
+  .argument('[archive-path]', 'Path to archive file (searches in .git/wip-archives/ if not specified)')
   .option('--force', 'Force import even with local changes')
   .option('--stash', 'Stash local changes before import')
   .action((archivePath, options) => {
