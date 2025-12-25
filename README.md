@@ -46,8 +46,8 @@ Creates an archive containing git bundle with full commit history and metadata, 
 **What it does:**
 
 1. Detects current feature branch (cannot export from base branch)
-2. Creates git bundle for commits from base branch to current branch
-3. Generates metadata.json with branch info, commit range, and timestamp
+2. Creates git bundle containing the entire feature branch history
+3. Generates metadata.json with branch info and timestamp
 4. Compresses bundle and metadata into tar.gz archive
 5. **Stores archive in `.git/wip-archives/` directory** (safe from accidental commits)
 6. Sends archive via Telegram (if configured)
@@ -73,10 +73,9 @@ Imports archive and creates/overwrites feature branch with full commit history.
 2. Reads and validates metadata
 3. Verifies git bundle integrity
 4. Handles local changes (stashes or requires --force)
-5. Updates base branch
-6. Removes existing feature branch if it exists
-7. Imports bundle and switches to feature branch
-8. Cleans up temporary files
+5. Removes existing feature branch if it exists
+6. Imports bundle with full branch history and switches to feature branch
+7. Cleans up temporary files
 
 **Options:**
 - `--stash`: Automatically stash local changes before import

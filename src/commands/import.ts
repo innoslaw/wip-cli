@@ -4,7 +4,6 @@ import { loadConfig, getRepoRoot } from '../config';
 import { logger } from '../logger';
 import {
   verifyBundle,
-  pullBaseBranch,
   getCurrentBranch,
   branchExists,
   fetchBundleBranch,
@@ -71,9 +70,6 @@ export const importCommand = async (archivePath: string | undefined, options: Im
         stashLocalChanges();
       }
     }
-
-    logger.info(`Pulling/updating base branch: ${metadata.baseBranch}`);
-    pullBaseBranch(metadata.baseBranch);
 
     if (branchExists(metadata.featureBranch)) {
       if (currentBranch === metadata.featureBranch) {

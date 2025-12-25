@@ -3,8 +3,7 @@ import { loadConfig, getRepoRoot } from '../config';
 import { logger } from '../logger';
 import {
   getCurrentBranch,
-  getCommitRange,
-  createBundleFromRange,
+  createBundleFromBranch,
   hasCommits,
 } from '../utils/git';
 import { sendBundleToTelegram } from '../utils/telegram';
@@ -36,16 +35,14 @@ export const exportCommand = async (msg?: string): Promise<void> => {
   const tempDir = createTempDir();
 
   try {
-    const commitRange = getCommitRange(config.base_branch, currentBranch);
     const bundlePath = getBundlePath(tempDir);
 
-    logger.info(`Creating bundle for range: ${commitRange}`);
-    createBundleFromRange(bundlePath, commitRange);
+    logger.info(`Creating bundle for branch: ${currentBranch}`);
+    createBundleFromBranch(bundlePath, currentBranch);
 
     const metadata: BundleMetadata = {
       featureBranch: currentBranch,
       baseBranch: config.base_branch,
-      commitRange,
       createdAt: new Date().toISOString(),
     };
 

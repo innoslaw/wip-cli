@@ -101,7 +101,7 @@ export const forceBranchFromBase = (branchName: string, baseBranch: string): voi
 };
 
 export const fetchBundleBranch = (bundlePath: string, branchName: string): void => {
-  execGit(`fetch "${bundlePath}" HEAD:${branchName}`);
+  execGit(`fetch "${bundlePath}" +${branchName}:${branchName}`);
 };
 
 export const checkoutBranch = (branchName: string): void => {
@@ -173,12 +173,12 @@ export const getCommitRange = (baseBranch: string, featureBranch: string): strin
   return `${baseBranch}..${featureBranch}`;
 };
 
-export const createBundleFromRange = (bundlePath: string, commitRange: string): void => {
+export const createBundleFromBranch = (bundlePath: string, branchName: string): void => {
   const dir = dirname(bundlePath);
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  execGit(`bundle create "${bundlePath}" ${commitRange}`);
+  execGit(`bundle create "${bundlePath}" ${branchName}`);
 };
 
 export const deleteBranch = (branchName: string): void => {
