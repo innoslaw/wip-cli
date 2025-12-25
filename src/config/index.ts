@@ -10,6 +10,7 @@ const DEFAULT_CONFIG: Required<WipConfig> = {
   base_branch: 'main',
   telegram_bot_token: '',
   telegram_chat_id: '',
+  archive_name: 'wip-archive.tar.gz',
 };
 
 const findRepoRoot = (): string | null => {

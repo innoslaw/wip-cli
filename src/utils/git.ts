@@ -4,6 +4,11 @@ import { dirname } from 'path';
 import { GitStatus } from '../types';
 import { logger } from '../logger';
 
+export interface LocalChangesStatus {
+  hasUncommittedChanges: boolean;
+  hasUntrackedFiles: boolean;
+}
+
 const execGit = (command: string, cwd?: string): string => {
   try {
     return execSync(`git ${command}`, {
@@ -96,7 +101,7 @@ export const forceBranchFromBase = (branchName: string, baseBranch: string): voi
 };
 
 export const fetchBundleBranch = (bundlePath: string, branchName: string): void => {
-  execGit(`fetch "${bundlePath}" +HEAD:${branchName}`);
+  execGit(`fetch "${bundlePath}" HEAD:${branchName}`);
 };
 
 export const checkoutBranch = (branchName: string): void => {
@@ -140,3 +145,46 @@ export const hasCommits = (): boolean => {
   }
 };
 
+export const getLocalChangesStatus = (): LocalChangesStatus => {
+  const status = execGit('status --porcelain');
+  const lines = status.split('\n').filter((line) => line.trim());
+
+  return {
+    hasUncommittedChanges: lines.some((line) => line.startsWith('M ') || line.startsWith('A ') || line.startsWith('D ') || line.startsWith('R ') || line.startsWith('C ')),
+    hasUntrackedFiles: lines.some((line) => line.startsWith('?? ')),
+  };
+};
+
+export const stashLocalChanges = (): void => {
+  const timestamp = new Date().toISOString();
+  execGit(`stash push -u -m "wip-cli: temporary stash before import ${timestamp}"`);
+};
+
+export const hasStash = (): boolean => {
+  try {
+    const stashList = execGit('stash list');
+    return stashList.trim().length > 0;
+  } catch {
+    return false;
+  }
+};
+
+export const getCommitRange = (baseBranch: string, featureBranch: string): string => {
+  return `${baseBranch}..${featureBranch}`;
+};
+
+export const createBundleFromRange = (bundlePath: string, commitRange: string): void => {
+  const dir = dirname(bundlePath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  execGit(`bundle create "${bundlePath}" ${commitRange}`);
+};
+
+export const deleteBranch = (branchName: string): void => {
+  try {
+    execGit(`branch -D ${branchName}`);
+  } catch (error) {
+    logger.warn(`Failed to delete branch ${branchName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
